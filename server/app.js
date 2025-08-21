@@ -14,5 +14,7 @@ app.use('/api/transfers', require('./routes/transfers'));
 app.use('/api/assignments', require('./routes/assignments'));
 app.use('/api/expenditures', require('./routes/expenditures'));
 app.use('/api/auditlog', require('./routes/auditlog'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/dashboard',require('./routes/dashboard'));
 
 module.exports = app;

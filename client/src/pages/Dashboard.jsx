@@ -5,23 +5,57 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 export default function Dashboard() {
   const [filters, setFilters] = useState({ base: '', equipment: '', fromDate: '', toDate: '' });
   const [metrics, setMetrics] = useState({});
+  const [equipmentList, setEquipmentList] = useState([]);
+  const [baseName, setBaseName] = useState('');
+  const [submittedFilters, setSubmittedFilters] = useState(null);
+  const token = localStorage.getItem('token');
+  const userBase = localStorage.getItem('base'); // base ID from localStorage
 
   useEffect(() => {
-    async function load() {
-      const token = localStorage.getItem('token');
+    async function loadEquipment() {
       if (!token) return;
-      const qs = new URLSearchParams(filters).toString();
+      const resEquipment = await fetch(`${API_BASE_URL}/equipments`, { headers: { Authorization: `Bearer ${token}` } });
+      if (resEquipment.ok) setEquipmentList(await resEquipment.json());
+    }
+    loadEquipment();
+  }, [token]);
+
+  useEffect(() => {
+    async function fetchBaseName() {
+      if (userBase && token) {
+        const res = await fetch(`${API_BASE_URL}/bases/${userBase}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const base = await res.json();
+          setBaseName(base.name);
+          setFilters(f => ({ ...f, base: userBase }));
+        }
+      }
+    }
+    fetchBaseName();
+  }, [userBase, token]);
+
+  useEffect(() => {
+    async function loadMetrics() {
+      if (!token || !submittedFilters) return;
+      const qs = new URLSearchParams(submittedFilters).toString();
       const res = await fetch(`${API_BASE_URL}/dashboard?${qs}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) setMetrics(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setMetrics(data);
+      } else {
+        setMetrics({});
+      }
     }
-    load();
-  }, [filters]);
+    loadMetrics();
+  }, [submittedFilters, token]);
 
   function onClickNetMovement() {
     alert(
-      `Purchases: ${metrics.purchases || 0}\nTransfers In: ${metrics.transfersIn || 0}\nTransfers Out: ${metrics.transfersOut || 0}`,
+      `Purchases: ${metrics.purchases || 0}\nTransfers In: ${metrics.transfersIn || 0}\nTransfers Out: ${metrics.transfersOut || 0}`
     );
   }
 
@@ -29,16 +63,23 @@ export default function Dashboard() {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   }
 
+  function onSubmit(e) {
+    e.preventDefault();
+    // Ensure base id is included on submit
+    setSubmittedFilters({ ...filters, base: userBase || filters.base });
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-8">
       <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      <div className="flex gap-4 mb-8 flex-wrap">
+      <form onSubmit={onSubmit} className="flex gap-4 mb-8 flex-wrap">
         <input
           type="date"
           name="fromDate"
           value={filters.fromDate}
           onChange={onFilterChange}
           className="border p-2 rounded"
+          required
         />
         <input
           type="date"
@@ -46,24 +87,37 @@ export default function Dashboard() {
           value={filters.toDate}
           onChange={onFilterChange}
           className="border p-2 rounded"
+          required
         />
         <input
           type="text"
           name="base"
-          placeholder="Base"
-          value={filters.base}
-          onChange={onFilterChange}
-          className="border p-2 rounded"
+          value={baseName}
+          readOnly
+          className="border p-2 rounded bg-gray-100 cursor-not-allowed"
+          placeholder="Base (fixed)"
         />
-        <input
-          type="text"
+        <select
           name="equipment"
-          placeholder="Equipment"
           value={filters.equipment}
           onChange={onFilterChange}
           className="border p-2 rounded"
-        />
-      </div>
+          required
+        >
+          <option value="">Select Equipment</option>
+          {equipmentList.map((eq) => (
+            <option key={eq._id} value={eq._id}>
+              {eq.name}
+            </option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+        >
+          Submit
+        </button>
+      </form>
       <div className="grid grid-cols-3 gap-6 text-center">
         <div className="p-6 bg-gray-100 rounded shadow">
           <h3 className="text-lg font-semibold mb-2">Opening Balance</h3>
@@ -74,7 +128,9 @@ export default function Dashboard() {
           className="p-6 bg-gray-100 rounded shadow cursor-pointer hover:bg-green-100"
           role="button"
           tabIndex={0}
-          onKeyPress={onClickNetMovement}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') onClickNetMovement();
+          }}
         >
           <h3 className="text-lg font-semibold mb-2">Net Movement</h3>
           <p className="text-3xl">{metrics.netMovement || 0}</p>

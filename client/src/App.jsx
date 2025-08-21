@@ -7,6 +7,7 @@ import Transfers from './pages/Transfers.jsx';
 import AssignmentsExpenditures from './pages/AssignmentsExpenditures.jsx';
 import AuditLog from './pages/AuditLog.jsx';
 import ResourceManagement from './pages/ResourceManagement.jsx';
+import Navbar from './components/Navbar.jsx';
 
 const RequireAuth = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -16,6 +17,7 @@ const RequireAuth = ({ children }) => {
 export default function App() {
   return (
     <BrowserRouter>
+    <Navbar/>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />

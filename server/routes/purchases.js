@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('../controllers/purchaseController');
+const purchaseController = require('../controllers/purchaseController');
 const auth = require('../middleware/auth');
 const rbac = require('../middleware/rbac');
-const audit = require('../middleware/audit');
 
-router.get('/', auth, controller.getPurchases);
-router.post('/', auth, rbac('Admin', 'Logistics'), audit('Add Purchase'), controller.addPurchase);
+router.get('/', auth, purchaseController.getPurchases);
+router.post('/', auth, rbac('Admin', 'Logistics'), purchaseController.addPurchase);
 
 module.exports = router;
